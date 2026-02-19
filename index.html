@@ -133,7 +133,7 @@
 
     <script>
         // لینک Web App تو - مستقیم از دیتای شیت می خونه
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby_CsKWkOrLTerRDtDAzYViQPfUjeUD_DeIStYGhMfRapnYzyciS5QjrIV3h01mA_zXMg/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxl8MfQYCjtLdWwW2c2QQF8m_92dmk206hbM-lHlVSMY_hKnO_yiNUk5ZY2EfyoqD4nfQ/exec";
 
         let allData = [];
         let priorityOrder = [];
@@ -175,7 +175,7 @@
 
         // بخش جدید برای ارتباط با خارج از محیط گوگل (گیت هاب به گوگل)
         document.addEventListener('DOMContentLoaded', () => {
-            fetch(SCRIPT_URL)
+            fetch(SCRIPT_URL + "?v=" + new Date().getTime())
                 .then(response => {
                     if (!response.ok) throw new Error('Network response was not ok');
                     return response.json();
