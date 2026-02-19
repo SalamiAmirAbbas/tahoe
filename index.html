@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سامانه انتخاب واحد</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            scroll-behavior: smooth;
+        }
+        .custom-header {
+            background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%);
+            border-bottom-left-radius: 2.5rem;
+            border-bottom-right-radius: 2.5rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .header-shrunk {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+            border-bottom-left-radius: 1.5rem;
+            border-bottom-right-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .header-content {
+            transition: all 0.3s ease;
+        }
+        .header-shrunk .header-content {
+            opacity: 0;
+            height: 0;
+            margin-bottom: 0 !important;
+            pointer-events: none;
+            transform: translateY(-10px);
+        }
+        .course-card {
+            transition: all 0.2s ease;
+        }
+        .course-card:hover {
+            transform: translateY(-2px);
+        }
+        .spinner {
+            border: 3px solid rgba(67, 56, 202, 0.1);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border-left-color: #4338ca;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #copyToast {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(8px);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            white-space: nowrap;
+        }
+        #copyToast.show {
+            bottom: 40px;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-10">
+
+    <div id="copyToast">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <span>کد ارائه درس با موفقیت کپی شد</span>
+    </div>
+
+    <header id="mainHeader" class="custom-header text-white pt-8 pb-10 px-6 shadow-xl sticky top-0 z-50">
+        <div class="max-w-md mx-auto">
+            <div class="header-content flex justify-between items-center mb-6">
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">سامانه هوشمند برنامه‌ریزی درسی</h1>
+                    <p class="text-indigo-200 text-[10px] mt-1 font-light">ما بدون توقف، ادامه می‌دهیم...!</p>
+                </div>
+                <div class="bg-white/10 p-2.5 rounded-xl backdrop-blur-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332 0.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332 0.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332 0.477-4.5 1.253" />
+                    </svg>
+                </div>
+            </div>
+
+            <div class="relative group">
+                <input type="text" id="searchInput" oninput="handleSearch()" 
+                       placeholder="نام درس، استاد یا کد ارائه..." 
+                       class="w-full bg-white text-gray-800 py-3.5 px-5 pr-12 rounded-2xl shadow-lg focus:outline-none focus:ring-4 focus:ring-indigo-400/30 transition-all text-sm font-medium border-none">
+                <div class="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-400 group-focus-within:text-indigo-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 mt-6 relative z-10">
+        <div id="loading" class="bg-white rounded-[2rem] p-10 shadow-xl text-center border border-indigo-50">
+            <div class="spinner mx-auto mb-4"></div>
+            <h2 class="text-gray-800 font-bold text-sm">در حال دریافت اطلاعات...</h2>
+        </div>
+
+        <div id="courseList" class="space-y-4 hidden"></div>
+
+        <div id="statusMessage" class="hidden text-center py-20 bg-white rounded-[2.5rem] border-2 border-dashed border-gray-100 shadow-sm">
+            <div class="text-5xl mb-3 text-slate-300">🔎</div>
+            <h3 class="text-gray-900 font-bold text-sm">موردی پیدا نکردیم</h3>
+            <p id="statusText" class="text-gray-400 text-[10px] mt-1">عنوان دیگری را امتحان کنید</p>
+            <button onclick="clearSearch()" class="mt-4 text-indigo-600 text-xs font-bold underline">نمایش لیست کامل</button>
+        </div>
+    </main>
+
+    <script>
+        // لینک Web App تو - مستقیم از دیتای شیت می خونه
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby_CsKWkOrLTerRDtDAzYViQPfUjeUD_DeIStYGhMfRapnYzyciS5QjrIV3h01mA_zXMg/exec";
+
+        let allData = [];
+        let priorityOrder = [];
+        const daysOfWeekMap = ["شنبه", "یکشنبه", "دوشنبه", "سه شنبه", "چهارشنبه", "پنج شنبه", "جمعه"];
+
+        window.onscroll = function() {
+            const header = document.getElementById("mainHeader");
+            if (document.body.scrollTop > 50 || document.documentElement.scrollTop > 50) {
+                header.classList.add("header-shrunk");
+            } else {
+                header.classList.remove("header-shrunk");
+            }
+        };
+
+        function formatToPersian(text) {
+            if (text === null || text === undefined || text === "") return "ثبت نشده";
+            const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+            return String(text).replace(/[0-9]/g, (digit) => persianDigits[digit]);
+        }
+
+        function convertToEnglish(str) {
+            if (!str) return "";
+            return str.replace(/[۰-۹]/g, d => d.charCodeAt(0) - 1776)
+                      .replace(/[٠-٩]/g, d => d.charCodeAt(0) - 1632);
+        }
+
+        function copyCode(code) {
+            const el = document.createElement('textarea');
+            el.value = code;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+
+            const toast = document.getElementById('copyToast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        // بخش جدید برای ارتباط با خارج از محیط گوگل (گیت هاب به گوگل)
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch(SCRIPT_URL)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    handleDataResponse(data);
+                })
+                .catch(err => {
+                    console.error('Fetch error:', err);
+                    handleServerError(err);
+                });
+        });
+
+        function handleDataResponse(response) {
+            if (response.error) {
+                handleServerError(response.error);
+                return;
+            }
+            allData = response.data || [];
+            priorityOrder = response.priorityList || [];
+            
+            const initialList = sortData(filterByPriority(allData));
+            renderList(initialList);
+            
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('courseList').classList.remove('hidden');
+        }
+
+        function handleServerError(err) {
+            document.getElementById('loading').classList.add('hidden');
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.classList.remove('hidden');
+            document.getElementById('statusText').innerText = "خطا در اتصال: " + (err.message || "لطفاً دقایقی دیگر تلاش کنید.");
+        }
+
+        function filterByPriority(list) {
+            if (priorityOrder.length === 0) return list;
+            return list.filter(item => priorityOrder.includes(item['نام درس']));
+        }
+
+        function sortData(list) {
+            return [...list].sort((a, b) => {
+                let idxA = priorityOrder.indexOf(a['نام درس']);
+                let idxB = priorityOrder.indexOf(b['نام درس']);
+                
+                if (idxA === -1) idxA = 999;
+                if (idxB === -1) idxB = 999;
+                
+                if (idxA !== idxB) return idxA - idxB;
+
+                const dayA = daysOfWeekMap.indexOf(a['روز']);
+                const dayB = daysOfWeekMap.indexOf(b['روز']);
+                if (dayA !== dayB) return dayA - dayB;
+
+                const timeA = (a['زمان'] || "").toString();
+                const timeB = (b['زمان'] || "").toString();
+                return timeA.localeCompare(timeB);
+            });
+        }
+
+        function renderList(items) {
+            const container = document.getElementById('courseList');
+            const statusDiv = document.getElementById('statusMessage');
+
+            if (items.length === 0) {
+                container.classList.add('hidden');
+                statusDiv.classList.remove('hidden');
+                return;
+            }
+
+            statusDiv.classList.add('hidden');
+            container.classList.remove('hidden');
+
+            container.innerHTML = items.map(course => {
+                const classTime = course['زمان'] || 'نامشخص';
+                const dayOfWeek = course['روز'] || 'نامشخص';
+                const originalCode = course['کد ارائه'] || "";
+
+                return `
+                <div class="course-card bg-white rounded-3xl p-5 shadow-sm border border-gray-100/50">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex-1">
+                            <h3 class="text-gray-900 font-black text-base leading-tight">${formatToPersian(course['نام درس'])}</h3>
+                            <div class="mt-2 flex items-center gap-2">
+                                <span onclick="copyCode('${originalCode}')" class="bg-indigo-50 text-indigo-700 text-[9px] font-bold px-2.5 py-1 rounded-lg border border-indigo-100/50 cursor-pointer active:bg-indigo-100 transition-colors">
+                                    کد: ${formatToPersian(course['کد ارائه'])}
+                                </span>
+                                <span class="text-gray-400 text-[10px]">|</span>
+                                <span class="text-gray-600 text-[10px] font-medium tracking-tight">${formatToPersian(course['واحد'])} واحد</span>
+                            </div>
+                        </div>
+                        <div class="bg-indigo-600 text-white min-w-[70px] h-[44px] rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100/50">
+                            <span class="text-[13px] font-black">${dayOfWeek}</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 text-xs mb-4">
+                        <div class="flex items-center gap-2 bg-slate-50/80 p-2.5 rounded-2xl border border-slate-100">
+                            <span class="text-lg">👨‍🏫</span>
+                            <div class="flex flex-col overflow-hidden">
+                                <span class="text-[9px] text-gray-400 font-medium">استاد مربوطه</span>
+                                <span class="font-bold text-gray-800 truncate leading-none mt-0.5">${course['استاد']}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 bg-slate-50/80 p-2.5 rounded-2xl border border-slate-100">
+                            <span class="text-lg">⏰</span>
+                            <div class="flex flex-col">
+                                <span class="text-[9px] text-gray-400 font-medium">زمان کلاس</span>
+                                <span class="font-bold text-gray-800 leading-none mt-0.5">${formatToPersian(classTime)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="border-t border-dashed border-gray-200 pt-4 flex justify-between items-center">
+                        <div class="flex flex-col">
+                            <span class="text-[9px] text-rose-500 font-bold mb-0.5 opacity-80 uppercase tracking-tighter">تاریخ برگزاری امتحان</span>
+                            <span class="text-[11px] font-black text-gray-800">${formatToPersian(course['تاریخ امتحان'])}</span>
+                        </div>
+                        <div class="text-left bg-slate-100 text-slate-800 border border-slate-200 px-3 py-1.5 rounded-xl">
+                             <span class="text-[11px] font-black">${formatToPersian(course['ساعت امتحان'])}</span>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function handleSearch() {
+            const rawInput = document.getElementById('searchInput').value.trim();
+            const cleanQuery = convertToEnglish(rawInput).toLowerCase();
+            const restrictedData = filterByPriority(allData);
+            const filtered = restrictedData.filter(c => {
+                const searchString = ((c['نام درس'] || "") + (c['استاد'] || "") + (c['کد ارائه'] || "")).toLowerCase();
+                return searchString.includes(cleanQuery);
+            });
+            renderList(sortData(filtered));
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = "";
+            renderList(sortData(filterByPriority(allData)));
+        }
+    </script>
+</body>
+</html>
