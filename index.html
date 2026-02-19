@@ -132,8 +132,7 @@
     </main>
 
     <script>
-        // لینک Web App تو - مستقیم از دیتای شیت می خونه
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxl8MfQYCjtLdWwW2c2QQF8m_92dmk206hbM-lHlVSMY_hKnO_yiNUk5ZY2EfyoqD4nfQ/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpNCE3XZsvfucusYVDsQGejq3JG7_-DFkGfkh0wA_K4dfLszk2FGAuAFly548Gvu_VxA/exec";
 
         let allData = [];
         let priorityOrder = [];
@@ -173,7 +172,6 @@
             setTimeout(() => toast.classList.remove('show'), 2000);
         }
 
-        // بخش جدید برای ارتباط با خارج از محیط گوگل (گیت هاب به گوگل)
         document.addEventListener('DOMContentLoaded', () => {
             fetch(SCRIPT_URL + "?v=" + new Date().getTime())
                 .then(response => {
@@ -194,9 +192,22 @@
                 handleServerError(response.error);
                 return;
             }
-            allData = response.data || [];
+
+            const rows = response.data || [];
             priorityOrder = response.priorityList || [];
-            
+
+            // تبدیل آرایه فشرده به آبجکت‌های قابل نمایش
+            allData = rows.map(row => ({
+                "نام درس": row[0],
+                "واحد": row[1],
+                "کد ارائه": row[2],
+                "روز": row[3] || "نامشخص",
+                "زمان": row[4] || "نامشخص",
+                "استاد": row[5] || "درج نشده",
+                "تاریخ امتحان": row[6] || "-",
+                "ساعت امتحان": row[7] || "-"
+            }));
+
             const initialList = sortData(filterByPriority(allData));
             renderList(initialList);
             
@@ -213,13 +224,13 @@
 
         function filterByPriority(list) {
             if (priorityOrder.length === 0) return list;
-            return list.filter(item => priorityOrder.includes(item['نام درس']));
+            return list.filter(item => priorityOrder.includes(String(item['نام درس']).trim()));
         }
 
         function sortData(list) {
             return [...list].sort((a, b) => {
-                let idxA = priorityOrder.indexOf(a['نام درس']);
-                let idxB = priorityOrder.indexOf(b['نام درس']);
+                let idxA = priorityOrder.indexOf(String(a['نام درس']).trim());
+                let idxB = priorityOrder.indexOf(String(b['نام درس']).trim());
                 
                 if (idxA === -1) idxA = 999;
                 if (idxB === -1) idxB = 999;
@@ -250,17 +261,13 @@
             container.classList.remove('hidden');
 
             container.innerHTML = items.map(course => {
-                const classTime = course['زمان'] || 'نامشخص';
-                const dayOfWeek = course['روز'] || 'نامشخص';
-                const originalCode = course['کد ارائه'] || "";
-
                 return `
                 <div class="course-card bg-white rounded-3xl p-5 shadow-sm border border-gray-100/50">
                     <div class="flex justify-between items-center mb-4">
                         <div class="flex-1">
                             <h3 class="text-gray-900 font-black text-base leading-tight">${formatToPersian(course['نام درس'])}</h3>
                             <div class="mt-2 flex items-center gap-2">
-                                <span onclick="copyCode('${originalCode}')" class="bg-indigo-50 text-indigo-700 text-[9px] font-bold px-2.5 py-1 rounded-lg border border-indigo-100/50 cursor-pointer active:bg-indigo-100 transition-colors">
+                                <span onclick="copyCode('${course['کد ارائه']}')" class="bg-indigo-50 text-indigo-700 text-[9px] font-bold px-2.5 py-1 rounded-lg border border-indigo-100/50 cursor-pointer active:bg-indigo-100 transition-colors">
                                     کد: ${formatToPersian(course['کد ارائه'])}
                                 </span>
                                 <span class="text-gray-400 text-[10px]">|</span>
@@ -268,7 +275,7 @@
                             </div>
                         </div>
                         <div class="bg-indigo-600 text-white min-w-[70px] h-[44px] rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100/50">
-                            <span class="text-[13px] font-black">${dayOfWeek}</span>
+                            <span class="text-[13px] font-black">${course['روز']}</span>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3 text-xs mb-4">
@@ -283,7 +290,7 @@
                             <span class="text-lg">⏰</span>
                             <div class="flex flex-col">
                                 <span class="text-[9px] text-gray-400 font-medium">زمان کلاس</span>
-                                <span class="font-bold text-gray-800 leading-none mt-0.5">${formatToPersian(classTime)}</span>
+                                <span class="font-bold text-gray-800 leading-none mt-0.5">${formatToPersian(course['زمان'])}</span>
                             </div>
                         </div>
                     </div>
@@ -303,8 +310,7 @@
         function handleSearch() {
             const rawInput = document.getElementById('searchInput').value.trim();
             const cleanQuery = convertToEnglish(rawInput).toLowerCase();
-            const restrictedData = filterByPriority(allData);
-            const filtered = restrictedData.filter(c => {
+            const filtered = allData.filter(c => {
                 const searchString = ((c['نام درس'] || "") + (c['استاد'] || "") + (c['کد ارائه'] || "")).toLowerCase();
                 return searchString.includes(cleanQuery);
             });
