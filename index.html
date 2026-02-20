@@ -134,7 +134,8 @@
     <script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpNCE3XZsvfucusYVDsQGejq3JG7_-DFkGfkh0wA_K4dfLszk2FGAuAFly548Gvu_VxA/exec";
 
-        let allData = [];
+        let allData = []; // بانک کامل اطلاعات
+        let filteredPriorityData = []; // فقط دروسی که در اولویت هستند
         let priorityOrder = [];
         const daysOfWeekMap = ["شنبه", "یکشنبه", "دوشنبه", "سه شنبه", "چهارشنبه", "پنج شنبه", "جمعه"];
 
@@ -208,8 +209,11 @@
                 "ساعت امتحان": row[7] || "-"
             }));
 
-            const initialList = sortData(filterByPriority(allData));
-            renderList(initialList);
+            // اعمال فیلتر اولیه بر اساس لیست اولویت
+            filteredPriorityData = filterByPriority(allData);
+            
+            // رندر لیست نهایی
+            renderList(sortData(filteredPriorityData));
             
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('courseList').classList.remove('hidden');
@@ -224,7 +228,10 @@
 
         function filterByPriority(list) {
             if (priorityOrder.length === 0) return list;
-            return list.filter(item => priorityOrder.includes(String(item['نام درس']).trim()));
+            return list.filter(item => {
+                const courseName = String(item['نام درس']).trim();
+                return priorityOrder.some(p => courseName === String(p).trim());
+            });
         }
 
         function sortData(list) {
@@ -310,7 +317,9 @@
         function handleSearch() {
             const rawInput = document.getElementById('searchInput').value.trim();
             const cleanQuery = convertToEnglish(rawInput).toLowerCase();
-            const filtered = allData.filter(c => {
+            
+            // جستجو فقط در لیست فیلتر شده (Priority) انجام می شود
+            const filtered = filteredPriorityData.filter(c => {
                 const searchString = ((c['نام درس'] || "") + (c['استاد'] || "") + (c['کد ارائه'] || "")).toLowerCase();
                 return searchString.includes(cleanQuery);
             });
@@ -319,7 +328,7 @@
 
         function clearSearch() {
             document.getElementById('searchInput').value = "";
-            renderList(sortData(filterByPriority(allData)));
+            renderList(sortData(filteredPriorityData));
         }
     </script>
 </body>
