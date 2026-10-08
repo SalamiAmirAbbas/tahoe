@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- ========================================== -->
-    <!--     تنظیمات جلوگیری از کَش (NO-CACHE)     -->
+    <!--      تنظیمات جلوگیری از کَش (NO-CACHE)     -->
     <!-- ========================================== -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -141,7 +141,8 @@
 
     <script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby6NxXcr-cGYJDK0aRZAmOCecttG4cUw9MfQ8y2ET2WS9Xbt90JXTBb9QzG5ix33iKnyg/exec";
-        let allData = []; let filteredPriorityData = []; let priorityOrder = [];
+        let allData = []; 
+        let priorityOrder = [];
 
         window.onscroll = function() {
             const header = document.getElementById("mainHeader");
@@ -155,9 +156,24 @@
             return String(text).replace(/[0-9]/g, (digit) => persianDigits[digit]);
         }
 
-        function convertToEnglish(str) {
+        // موتور استانداردسازی متن برای جستجوی بسیار هوشمند
+        function normalizeText(str) {
             if (!str) return "";
-            return str.replace(/[۰-۹]/g, d => d.charCodeAt(0) - 1776).replace(/[٠-٩]/g, d => d.charCodeAt(0) - 1632);
+            return String(str)
+                .toLowerCase()
+                // تبدیل تمام اعداد به انگلیسی
+                .replace(/[۰-۹]/g, d => d.charCodeAt(0) - 1776)
+                .replace(/[٠-٩]/g, d => d.charCodeAt(0) - 1632)
+                // یکسان‌سازی حروف فارسی/عربی
+                .replace(/ي/g, "ی")
+                .replace(/ك/g, "ک")
+                .replace(/آ|أ|إ/g, "ا")
+                .replace(/ۀ|ة/g, "ه")
+                // حذف تمام علائم نگارشی، پرانتزها، خط تیره‌ها و نقاط
+                .replace(/[()\[\]{}_\-.,:;!؟]/g, " ")
+                // یکسان‌سازی فضاهای خالی
+                .replace(/\s+/g, " ")
+                .trim();
         }
 
         function copyCode(code) {
@@ -177,7 +193,7 @@
 
         function handleDataResponse(response) {
             const rows = response.data || []; 
-            priorityOrder = (response.priorityList || []).map(p => String(p).trim()).filter(Boolean);
+            priorityOrder = (response.priorityList || []).map(p => normalizeText(p)).filter(Boolean);
 
             allData = rows.map(row => ({
                 "نام درس": (row[0] && String(row[0]).trim()) ? row[0] : "بدون نام",
@@ -190,9 +206,7 @@
                 "ساعت امتحان": (row[7] && String(row[7]).trim()) ? row[7] : "مشخص نشده"
             }));
 
-            filteredPriorityData = filterByPriority(allData);
-            renderList(sortData(filteredPriorityData));
-            
+            renderList(sortData(allData));
             document.getElementById('loading').classList.add('hidden');
         }
 
@@ -205,26 +219,20 @@
             if (statusText) statusText.innerText = "خطا در دریافت اطلاعات از سرور";
         }
 
-        function filterByPriority(list) {
-            if (!priorityOrder || priorityOrder.length === 0) return list;
-            
-            const filtered = list.filter(item => 
-                priorityOrder.some(p => String(item['نام درس']).trim().includes(p) || p.includes(String(item['نام درس']).trim()))
-            );
-            
-            if (filtered.length === 0) {
-                return list;
-            }
-            
-            return filtered;
-        }
-
-        // مرتب‌سازی بر اساس نام درس (حروف الفبا الف تا ی)
+        // مرتب‌سازی بر اساس اولویت + حروف الفبا (بدون حذف داده)
         function sortData(list) {
+            if (!list) return [];
             return list.slice().sort((a, b) => {
-                const nameA = String(a['نام درس'] || "").trim();
-                const nameB = String(b['نام درس'] || "").trim();
-                return nameA.localeCompare(nameB, 'fa', { sensitivity: 'base' });
+                const nameA = normalizeText(a['نام درس']);
+                const nameB = normalizeText(b['نام درس']);
+
+                const isPriorityA = priorityOrder.some(p => nameA.includes(p));
+                const isPriorityB = priorityOrder.some(p => nameB.includes(p));
+
+                if (isPriorityA && !isPriorityB) return -1;
+                if (!isPriorityA && isPriorityB) return 1;
+
+                return String(a['نام درس']).localeCompare(String(b['نام درس']), 'fa', { sensitivity: 'base' });
             });
         }
 
@@ -285,15 +293,37 @@
                 </div>`).join('');
         }
 
+        // جستجوی هوشمند تطبیقی (Token-Based Search)
         function handleSearch() {
-            const cleanQuery = convertToEnglish(document.getElementById('searchInput').value.trim()).toLowerCase();
-            const filtered = filteredPriorityData.filter(c => ((c['نام درس'] || "") + (c['استاد'] || "") + (c['کد ارائه'] || "")).toLowerCase().includes(cleanQuery));
+            const rawQuery = document.getElementById('searchInput').value;
+            const normalizedQuery = normalizeText(rawQuery);
+            
+            if (!normalizedQuery) {
+                renderList(sortData(allData));
+                return;
+            }
+
+            // جدا کردن کلمات ورودی کاربر
+            const queryTokens = normalizedQuery.split(" ").filter(Boolean);
+
+            const filtered = allData.filter(course => {
+                // ساخت متن قابل جستجو برای هر کارت
+                const searchableText = normalizeText(
+                    (course['نام درس'] || "") + " " + 
+                    (course['استاد'] || "") + " " + 
+                    (course['کد ارائه'] || "")
+                );
+
+                // شرط: تمام کلمات وارد شده توسط کاربر باید در متن کارت موجود باشند
+                return queryTokens.every(token => searchableText.includes(token));
+            });
+
             renderList(sortData(filtered));
         }
 
         function clearSearch() { 
             document.getElementById('searchInput').value = ""; 
-            renderList(sortData(filteredPriorityData)); 
+            renderList(sortData(allData)); 
         }
     </script>
 </body>
