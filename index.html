@@ -6,6 +6,8 @@
     <title>سامانه برنامه‌ریزی درسی</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <!-- افزودن Google Material Symbols -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <style>
         body {
             font-family: 'Vazirmatn', sans-serif;
@@ -19,6 +21,10 @@
         }
         body::-webkit-scrollbar { display: none; }
         body { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
 
         .custom-header {
             background: rgba(139, 92, 246, 0.1);
@@ -77,10 +83,8 @@
 <body class="pb-10">
 
     <div id="copyToast">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-        </svg>
-        <span>کد ارائه درس با موفقیت کپی شد ✨</span>
+        <span class="material-symbols-outlined text-green-300">check_circle</span>
+        <span>کد ارائه درس با موفقیت کپی شد</span>
     </div>
 
     <header id="mainHeader" class="custom-header text-white pt-8 pb-10 px-6 shadow-xl sticky top-0 z-50">
@@ -90,10 +94,8 @@
                     <h1 class="text-xl font-black tracking-tight">سامانه برنامه‌ریزی درسی</h1>
                     <p class="text-indigo-300 text-[10px] mt-1 font-medium">هوشمندی در مدیریت زمان</p>
                 </div>
-                <div class="bg-indigo-500/20 p-2.5 rounded-2xl border border-indigo-400/30 text-indigo-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332 0.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332 0.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332 0.477-4.5 1.253" />
-                    </svg>
+                <div class="bg-indigo-500/20 p-2.5 rounded-2xl border border-indigo-400/30 text-indigo-300 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-xl">menu_book</span>
                 </div>
             </div>
 
@@ -101,10 +103,8 @@
                 <input type="text" id="searchInput" oninput="handleSearch()" 
                        placeholder="نام درس، استاد یا کد..." 
                        class="w-full bg-white/5 text-white py-4 px-6 pr-12 rounded-[22px] border border-white/10 backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all text-sm font-medium">
-                <div class="absolute right-4 top-1/2 -translate-y-1/2 text-purple-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+                <div class="absolute right-4 top-1/2 -translate-y-1/2 text-purple-400 flex items-center">
+                    <span class="material-symbols-outlined text-xl">search</span>
                 </div>
             </div>
         </div>
@@ -118,8 +118,10 @@
 
         <div id="courseList" class="space-y-5 hidden"></div>
 
-        <div id="statusMessage" class="hidden text-center py-20 bg-white/5 rounded-[3rem] border-2 border-dashed border-white/10">
-            <div class="text-6xl mb-4 opacity-30">💜</div>
+        <div id="statusMessage" class="hidden text-center py-16 bg-white/5 rounded-[3rem] border-2 border-dashed border-white/10">
+            <div class="flex justify-center mb-3">
+                <span class="material-symbols-outlined text-5xl text-purple-400/40">search_off</span>
+            </div>
             <h3 id="statusText" class="text-white font-bold text-sm">موردی یافت نشد</h3>
             <button onclick="clearSearch()" class="mt-4 text-purple-400 text-xs font-black underline">نمایش همه دروس</button>
         </div>
@@ -128,7 +130,6 @@
     <script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby6NxXcr-cGYJDK0aRZAmOCecttG4cUw9MfQ8y2ET2WS9Xbt90JXTBb9QzG5ix33iKnyg/exec";
         let allData = []; let filteredPriorityData = []; let priorityOrder = [];
-        const daysOfWeekMap = ["شنبه", "یکشنبه", "دوشنبه", "سه شنبه", "چهارشنبه", "پنج شنبه", "جمعه"];
 
         window.onscroll = function() {
             const header = document.getElementById("mainHeader");
@@ -206,15 +207,12 @@
             return filtered;
         }
 
+        // مرتب‌سازی بر اساس نام درس (حروف الفبا الف تا ی)
         function sortData(list) {
             return list.slice().sort((a, b) => {
-                let dayA = daysOfWeekMap.indexOf(String(a['روز']).trim());
-                let dayB = daysOfWeekMap.indexOf(String(b['روز']).trim());
-                
-                if (dayA === -1) dayA = 999;
-                if (dayB === -1) dayB = 999;
-                
-                return dayA - dayB;
+                const nameA = String(a['نام درس'] || "").trim();
+                const nameB = String(b['نام درس'] || "").trim();
+                return nameA.localeCompare(nameB, 'fa', { sensitivity: 'base' });
             });
         }
 
@@ -248,18 +246,18 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3 text-xs mb-5">
-                        <div class="flex items-center gap-3 bg-white/5 p-3 rounded-[20px] border border-white/5">
-                            <span class="text-lg">👨‍🏫</span>
-                            <div class="flex flex-col overflow-hidden">
+                        <div class="flex items-center gap-2.5 bg-white/5 p-3 rounded-[20px] border border-white/5 min-w-0">
+                            <span class="material-symbols-outlined text-purple-300 text-xl shrink-0">person</span>
+                            <div class="flex flex-col min-w-0 flex-1">
                                 <span class="text-[9px] text-white/40">استاد</span>
-                                <span class="font-bold text-white truncate">${course['استاد']}</span>
+                                <span class="font-bold text-white text-[11px] sm:text-xs truncate block" title="${course['استاد']}">${course['استاد']}</span>
                             </div>
                         </div>
-                        <div class="flex items-center gap-3 bg-white/5 p-3 rounded-[20px] border border-white/5">
-                            <span class="text-lg">⏰</span>
-                            <div class="flex flex-col">
+                        <div class="flex items-center gap-2.5 bg-white/5 p-3 rounded-[20px] border border-white/5 min-w-0">
+                            <span class="material-symbols-outlined text-purple-300 text-xl shrink-0">schedule</span>
+                            <div class="flex flex-col min-w-0 flex-1">
                                 <span class="text-[9px] text-white/40">زمان</span>
-                                <span class="font-bold text-white">${formatToPersian(course['زمان'])}</span>
+                                <span class="font-bold text-white text-[11px] sm:text-xs truncate block">${formatToPersian(course['زمان'])}</span>
                             </div>
                         </div>
                     </div>
@@ -269,7 +267,7 @@
                             <span class="text-[11px] font-bold text-white/80">${formatToPersian(course['تاریخ امتحان'])}</span>
                         </div>
                         <div class="bg-white/5 text-white/80 border border-white/10 px-4 py-1.5 rounded-xl text-[11px] font-black">
-                             ${formatToPersian(course['ساعت امتحان'])}
+                            ${formatToPersian(course['ساعت امتحان'])}
                         </div>
                     </div>
                 </div>`).join('');
