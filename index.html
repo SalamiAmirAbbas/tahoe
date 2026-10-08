@@ -177,22 +177,23 @@
             document.getElementById('statusText').innerText = "خطا در اتصال";
         }
 
-        function filterByPriority(list) {
-            if (priorityOrder.length === 0) return list;
-            return list.filter(item => priorityOrder.some(p => String(item['نام درس']).trim() === String(p).trim()));
-        }
-
-        function sortData(list) {
-            return [...list].sort((a, b) => {
-                let idxA = priorityOrder.indexOf(String(a['نام درس']).trim());
-                let idxB = priorityOrder.indexOf(String(b['نام درس']).trim());
-                if (idxA === -1) idxA = 999; if (idxB === -1) idxB = 999;
-                if (idxA !== idxB) return idxA - idxB;
-                const dayA = daysOfWeekMap.indexOf(a['روز']); const dayB = daysOfWeekMap.indexOf(b['روز']);
-                if (dayA !== dayB) return dayA - dayB;
-                return String(a['زمان']).localeCompare(String(b['زمان']));
-            });
-        }
+function filterByPriority(list) {
+    // اگر لیست اولویت خالی بود، کل لیست را نشان بده
+    if (!priorityOrder || priorityOrder.length === 0) return list;
+    
+    // اعمال فیلتر
+    const filtered = list.filter(item => 
+        priorityOrder.some(p => String(item['نام درس']).trim() === String(p).trim())
+    );
+    
+    // اگر فیلتر باعث شد هیچی پیدا نشه (عدم تطابق نام‌ها)، کل لیست را نشان بده تا صفحه خالی نماند
+    if (filtered.length === 0) {
+        console.warn("هیچ درسی با لیست اولویت تطابق نداشت؛ نمایش تمام داده‌ها.");
+        return list;
+    }
+    
+    return filtered;
+}
 
         function renderList(items) {
             const container = document.getElementById('courseList');
