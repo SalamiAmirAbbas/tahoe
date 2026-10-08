@@ -9,7 +9,7 @@
     <style>
         body {
             font-family: 'Vazirmatn', sans-serif;
-            background-color: #090712; /* پس‌زمینه عمیق بنفش */
+            background-color: #090712;
             background-image: 
                 radial-gradient(circle at top left, #2e1065 0%, transparent 40%), 
                 radial-gradient(circle at bottom right, #1e1b4b 0%, transparent 40%);
@@ -17,7 +17,6 @@
             scroll-behavior: smooth;
             min-height: 100vh;
         }
-        /* پنهان کردن نوار اسکرول */
         body::-webkit-scrollbar { display: none; }
         body { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -138,7 +137,7 @@
         };
 
         function formatToPersian(text) {
-            if (!text) return "ثبت نشده";
+            if (!text || text === "مشخص نشده") return text || "مشخص نشده";
             const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
             return String(text).replace(/[0-9]/g, (digit) => persianDigits[digit]);
         }
@@ -149,6 +148,7 @@
         }
 
         function copyCode(code) {
+            if (code === "مشخص نشده") return;
             const el = document.createElement('textarea'); el.value = code; document.body.appendChild(el);
             el.select(); document.execCommand('copy'); document.body.removeChild(el);
             const toast = document.getElementById('copyToast'); toast.classList.add('show');
@@ -157,35 +157,49 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             fetch(SCRIPT_URL + "?v=" + new Date().getTime())
-                .then(res => res.json()).then(data => handleDataResponse(data))
+                .then(res => res.json())
+                .then(data => handleDataResponse(data))
                 .catch(err => handleServerError(err));
         });
 
         function handleDataResponse(response) {
-            const rows = response.data || []; priorityOrder = response.priorityList || [];
-            allData = rows.map(row => ({ "نام درس": row[0], "واحد": row[1], "کد ارائه": row[2], "روز": row[3] || "نامشخص", "زمان": row[4] || "نامشخص", "استاد": row[5] || "درج نشده", "تاریخ امتحان": row[6] || "-", "ساعت امتحان": row[7] || "-" }));
+            const rows = response.data || []; 
+            priorityOrder = (response.priorityList || []).map(p => String(p).trim()).filter(Boolean);
+
+            allData = rows.map(row => ({
+                "نام درس": (row[0] && String(row[0]).trim()) ? row[0] : "بدون نام",
+                "واحد": (row[1] && String(row[1]).trim()) ? row[1] : "۰",
+                "کد ارائه": (row[2] && String(row[2]).trim()) ? row[2] : "مشخص نشده",
+                "روز": (row[3] && String(row[3]).trim()) ? row[3] : "مشخص نشده",
+                "زمان": (row[4] && String(row[4]).trim()) ? row[4] : "مشخص نشده",
+                "استاد": (row[5] && String(row[5]).trim()) ? row[5] : "مشخص نشده",
+                "تاریخ امتحان": (row[6] && String(row[6]).trim()) ? row[6] : "مشخص نشده",
+                "ساعت امتحان": (row[7] && String(row[7]).trim()) ? row[7] : "مشخص نشده"
+            }));
+
             filteredPriorityData = filterByPriority(allData);
             renderList(sortData(filteredPriorityData));
+            
             document.getElementById('loading').classList.add('hidden');
-            document.getElementById('courseList').classList.remove('hidden');
         }
 
         function handleServerError(err) {
+            console.error("Server Error:", err);
             document.getElementById('loading').classList.add('hidden');
             const statusDiv = document.getElementById('statusMessage');
+            const statusText = document.getElementById('statusText');
             statusDiv.classList.remove('hidden');
-            document.getElementById('statusText').innerText = "خطا در اتصال";
+            if (statusText) statusText.innerText = "خطا در دریافت اطلاعات از سرور";
         }
 
         function filterByPriority(list) {
             if (!priorityOrder || priorityOrder.length === 0) return list;
             
             const filtered = list.filter(item => 
-                priorityOrder.some(p => String(item['نام درس']).trim() === String(p).trim())
+                priorityOrder.some(p => String(item['نام درس']).trim().includes(p) || p.includes(String(item['نام درس']).trim()))
             );
             
             if (filtered.length === 0) {
-                console.warn("هیچ درسی با لیست اولویت تطابق نداشت؛ نمایش تمام داده‌ها.");
                 return list;
             }
             
@@ -194,10 +208,12 @@
 
         function sortData(list) {
             return list.slice().sort((a, b) => {
-                let dayA = daysOfWeekMap.indexOf(a['روز']);
-                let dayB = daysOfWeekMap.indexOf(b['روز']);
-                if (dayA === -1) dayA = 99;
-                if (dayB === -1) dayB = 99;
+                let dayA = daysOfWeekMap.indexOf(String(a['روز']).trim());
+                let dayB = daysOfWeekMap.indexOf(String(b['روز']).trim());
+                
+                if (dayA === -1) dayA = 999;
+                if (dayB === -1) dayB = 999;
+                
                 return dayA - dayB;
             });
         }
@@ -205,8 +221,16 @@
         function renderList(items) {
             const container = document.getElementById('courseList');
             const statusDiv = document.getElementById('statusMessage');
-            if (items.length === 0) { container.classList.add('hidden'); statusDiv.classList.remove('hidden'); return; }
-            statusDiv.classList.add('hidden'); container.classList.remove('hidden');
+            
+            if (!items || items.length === 0) { 
+                container.classList.add('hidden'); 
+                statusDiv.classList.remove('hidden'); 
+                return; 
+            }
+            
+            statusDiv.classList.add('hidden'); 
+            container.classList.remove('hidden');
+            
             container.innerHTML = items.map(course => `
                 <div class="course-card p-6 shadow-2xl">
                     <div class="flex justify-between items-start mb-5">
@@ -219,7 +243,7 @@
                                 <span class="text-white/40 text-[10px] font-medium">${formatToPersian(course['واحد'])} واحد</span>
                             </div>
                         </div>
-                        <div class="bg-gradient-to-br from-purple-600 to-indigo-700 text-white min-w-[75px] py-2 rounded-[20px] flex items-center justify-center shadow-lg">
+                        <div class="bg-gradient-to-br from-purple-600 to-indigo-700 text-white min-w-[75px] py-2 rounded-[20px] flex items-center justify-center shadow-lg px-3">
                             <span class="text-[12px] font-black">${course['روز']}</span>
                         </div>
                     </div>
@@ -257,7 +281,10 @@
             renderList(sortData(filtered));
         }
 
-        function clearSearch() { document.getElementById('searchInput').value = ""; renderList(sortData(filteredPriorityData)); }
+        function clearSearch() { 
+            document.getElementById('searchInput').value = ""; 
+            renderList(sortData(filteredPriorityData)); 
+        }
     </script>
 </body>
 </html>
